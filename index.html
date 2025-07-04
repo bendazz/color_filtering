@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D CNN Kernel Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            min-width: 280px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .slider-container label {
+            min-width: 20px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .slider {
+            flex: 1;
+            margin: 0 10px;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .value-display {
+            min-width: 25px;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #5a6fd8;
+        }
+        
+        .toggle-button {
+            background: #28a745;
+        }
+        
+        .toggle-button:hover {
+            background: #218838;
+        }
+        
+        .toggle-button.paused {
+            background: #dc3545;
+        }
+        
+        .toggle-button.paused:hover {
+            background: #c82333;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            max-width: 380px;
+        }
+        
+        #info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        #info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .layer-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .layer-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .red { background-color: #ff4444; }
+        .green { background-color: #44ff44; }
+        .blue { background-color: #4444ff; }
+        .gray { background-color: #888888; }
+        
+        #explanation {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            max-width: 320px;
+        }
+        
+        #explanation h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        #explanation h4 {
+            margin: 15px 0 8px 0;
+            color: #444;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        #explanation p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .formula {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #495057;
+        }
+        
+        .highlight-text {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+
+        
+        #calculation-display {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        #calculation-display h4 {
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .calculation-step {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 4px 0;
+            color: #555;
+            line-height: 1.3;
+        }
+        
+        .calculation-result {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div class="control-group">
+                <h3>🎯 Kernel Position</h3>
+                <div class="slider-container">
+                    <label>X:</label>
+                    <input type="range" id="kernelX" class="slider" min="0" max="5" value="2" step="1">
+                    <span class="value-display" id="kernelXValue">2</span>
+                </div>
+                <div class="slider-container">
+                    <label>Y:</label>
+                    <input type="range" id="kernelY" class="slider" min="0" max="5" value="2" step="1">
+                    <span class="value-display" id="kernelYValue">2</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎮 Animation</h3>
+                <button id="autoMoveBtn" class="button toggle-button">Auto Move</button>
+                <button id="resetBtn" class="button">Reset Position</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔧 Visualization</h3>
+                <button id="kernelToggle" class="button">Hide Kernel Area</button>
+            </div>
+        </div>
+        
+
+        
+        <div id="calculation-display">
+            <h4>🧮 Current Calculation</h4>
+            <div id="calculation-steps">
+                <!-- Calculation steps will be populated by JavaScript -->
+            </div>
+            <div class="calculation-result" id="calculation-result">
+                Result: 0.0
+            </div>
+        </div>
+
+        <div id="explanation">
+            <h3>🔬 3D Convolution Operation</h3>
+            
+            <h4>📐 Kernel Operation:</h4>
+            <p>The <span class="highlight-text">3×3×3 kernel</span> slides across all three RGB layers simultaneously, performing element-wise multiplication and summation.</p>
+            
+            <div class="formula">
+Output[x,y] = Σ Σ Σ (
+  Input[x+i, y+j, Red] × K[i,j,0] +
+  Input[x+i, y+j, Green] × K[i,j,1] +
+  Input[x+i, y+j, Blue] × K[i,j,2]
+)
+where i,j ∈ {0,1,2}
+            </div>
+            
+            <h4>🎯 Current Operation:</h4>
+            <p id="currentOperation">Position (2,2): Processing 27 input values (9 from each RGB layer) to produce 1 output value.</p>
+            
+            <h4>📊 Dimension Reduction:</h4>
+            <p>• <strong>Input:</strong> 8×8×3 = 192 values</p>
+            <p>• <strong>Kernel:</strong> 3×3×3 = 27 weights</p>
+            <p>• <strong>Output:</strong> 6×6×1 = 36 values</p>
+            <p>• <strong>Reduction:</strong> 3 channels → 1 channel</p>
+            
+            <h4>💡 Key Concept:</h4>
+            <p>Each yellow highlighted region represents the <span class="highlight-text">receptive field</span> - the input pixels that contribute to computing one output pixel.</p>
+        </div>
+
+        <div id="info">
+            <h3>📚 CNN 3D Kernel Demonstration</h3>
+            <p><strong>Input Layers:</strong> Three 8×8 layers representing RGB channels of a color image</p>
+            <p><strong>Output Layer:</strong> Single 6×6 grayscale layer showing convolution result</p>
+            <p><strong>Kernel Coverage:</strong> Yellow highlighting shows the 3×3×3 kernel operation</p>
+            <div class="layer-legend">
+                <div class="layer-item">
+                    <div class="layer-color red"></div>
+                    <span>Red Channel</span>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-color green"></div>
+                    <span>Green Channel</span>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-color blue"></div>
+                    <span>Blue Channel</span>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-color gray"></div>
+                    <span>Output Layer</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
